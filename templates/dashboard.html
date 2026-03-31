@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0b0e14;
+      --surface: #12161f;
+      --surface2:#181d28;
+      --border:  #1e2433;
+      --accent:  #4ade80;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --error:   #f87171;
+      --ok:      #4ade80;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      color: var(--accent);
+      letter-spacing: .1em;
+    }
+    .logo span { color: var(--muted); }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 13px;
+    }
+
+    .nav-user {
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* username vindo da sessão Flask ({{ username }}) */
+    .nav-user strong { color: var(--text); }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-logout:hover { border-color: var(--error); color: var(--error); }
+
+    /* ── Layout principal ── */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .page-header p { font-size: 14px; color: var(--muted); }
+
+    /* ── Cards de estatística ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .stat-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--accent);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* ── Formulário inline de adição ── */
+    .add-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .add-form label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .add-form input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      min-width: 240px;
+      flex: 1;
+    }
+    .add-form input[type="text"]:focus { border-color: var(--accent); }
+
+    .btn-add {
+      background: var(--accent);
+      color: #0b0e14;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'IBM Plex Sans', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn-add:hover  { opacity: .85; }
+    .btn-add:active { transform: scale(.97); }
+
+    /* ── Tabela de dados ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .table-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: .08em;
+    }
+
+    /* Campo de busca no lado direito da tabela */
+    #search {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      color: var(--text);
+      outline: none;
+      width: 200px;
+      transition: border-color .2s;
+    }
+    #search:focus { border-color: var(--accent); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      padding: 12px 24px;
+      text-align: left;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      border-bottom: 1px solid var(--border);
+      font-weight: 400;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover      { background: var(--surface2); }
+
+    td {
+      padding: 14px 24px;
+      font-size: 14px;
+    }
+
+    td:first-child {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      width: 64px;
+    }
+
+    /* ── Estado vazio ── */
+    .empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .empty-icon {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 28px;
+      color: var(--border);
+      margin-bottom: 12px;
+    }
+
+    /* Flash message no dashboard */
+    .flash {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      border: 1px solid transparent;
+    }
+    .flash.error   { background: #1f0a0a; color: var(--error); border-color: #3f1010; }
+    .flash.success { background: #0a1f12; color: var(--ok);    border-color: #0f3320; }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar com usuário da sessão Flask -->
+  <nav>
+    <div class="logo">[ <span>api</span> ] datastore</div>
+    <div class="nav-right">
+      <span class="nav-user">logado como <strong>{{ username }}</strong></span>
+      <a class="btn-logout" href="{{ url_for('logout') }}">Sair</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <p>Visualize e gerencie os registros armazenados.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- Cards de estatística — values é a lista vinda do Python -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">TOTAL DE REGISTROS</div>
+        <!-- Filtro do Jinja2 para contar a lista -->
+        <div class="stat-value">{{ values | length }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">ÚLTIMO ID</div>
+        <div class="stat-value">
+          {% if values %}
+            #{{ values[0].id }}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulário para adicionar novo registro via POST no dashboard -->
+    <form class="add-form" method="POST" action="{{ url_for('dashboard_add') }}">
+      <div style="flex:1">
+        <label for="new-value">NOVO REGISTRO</label>
+        <input type="text" id="new-value" name="value" placeholder="Digite um valor..." required>
+      </div>
+      <button class="btn-add" type="submit">+ Adicionar</button>
+    </form>
+
+    <!-- Tabela de dados -->
+    <div class="table-wrap">
+      <div class="table-head">
+        <span class="table-title">REGISTROS</span>
+        <input id="search" type="text" placeholder="Filtrar..." oninput="filterTable(this.value)">
+      </div>
+
+      {% if values %}
+        <table id="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>VALOR</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Loop Jinja2 — values é uma lista de dicts vindos de database.py -->
+            {% for item in values %}
+            <tr>
+              <td>#{{ item.id }}</td>
+              <td>{{ item.data }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty">
+          <div class="empty-icon">{ }</div>
+          Nenhum registro encontrado. Adicione o primeiro acima.
+        </div>
+      {% endif %}
+    </div>
+  </main>
+
+  <script>
+    // Filtro de tabela em tempo real — sem recarregar a página
+    function filterTable(query) {
+      const rows = document.querySelectorAll('#data-table tbody tr');
+      const q = query.toLowerCase();
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
